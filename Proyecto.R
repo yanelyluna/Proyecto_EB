@@ -28,13 +28,11 @@ cor(SAheart[,-c(5,10)])
 # La correrlación más alta es entre adiposity y obesity
 
 
-#---- Análisis del efecto de las variables sdp, tobacco, ldl, adiposity, famhist 
-# en la variable respuesta chd
+#---- Análisis del efecto de las variables sdp, tobacco, ldl, adiposity, famhist, 
+# typea, obesity, alcohol y age en la variable respuesta chd
 
 
-
-#---- Análisis del efecto de las variables typea, obesity, alcohol, age
-# en la variable respuesta chd
+#---- Transformación de variables -----------
 
 
 #----- Ajuste del modelo con glm ---------------
