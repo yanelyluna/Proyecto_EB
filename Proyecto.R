@@ -35,5 +35,5 @@ cor(SAheart[,-c(5,10)])
 #---- Transformación de variables -----------
 
 
-#----- Ajuste del modelo con glm ---------------
+#----- Ajuste del modelo con glm y selección de variables ---------------
 
