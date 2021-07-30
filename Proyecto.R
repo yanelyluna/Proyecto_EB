@@ -6,7 +6,7 @@ library(ggplot2)
 library(tidyverse)
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
-options(digits = 3)
+options(digits = 1)
 
 #--- Datos ----
 SAheart <- read.table("http://www-stat.stanford.edu/~tibs/ElemStatLearn/datasets/SAheart.data",
@@ -25,13 +25,25 @@ SAheart$famhist <- factor(SAheart$famhist)
 #---- Correlación entre variables
 pairs(SAheart[,-c(5,10)],col=colores[SAheart$chd]) #Verde: 0, Rojo: 1
 cor(SAheart[,-c(5,10)])
-# La correrlación más alta es entre adiposity y obesity
+# La correlación más alta es entre adiposity y obesity
 
 
 #---- Análisis del efecto de las variables sdp, tobacco, ldl, adiposity, famhist, 
 # typea, obesity, alcohol y age en la variable respuesta chd
 
+par(mfrow = c(2,3))
+for (i in c(1:4,6,7)) {
+  boxplot(SAheart[,i]~SAheart$chd, border=colores, col=0, main=names(SAheart)[i])}
 
+par(mfrow = c(1,2))
+for (i in c(8,9)) {
+  boxplot(SAheart[,i]~SAheart$chd, border=colores, col=0, main=names(SAheart)[i])}
+
+par(mfrow=c(1,1))
+ggplot(SAheart,aes(x=famhist,fill=chd)) +
+  geom_bar() +
+  scale_fill_manual(values=colores) +
+  theme_bw()
 #---- Transformación de variables -----------
 
 
