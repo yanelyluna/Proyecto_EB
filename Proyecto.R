@@ -45,6 +45,13 @@ ggplot(SAheart,aes(x=famhist,fill=chd)) +
   scale_fill_manual(values=colores) +
   theme_bw()
 #---- Transformación de variables -----------
+#Se le suma 0.1 a las variables a transformar para evitar errores cuando se evalua en 0
+SAheart$obesity=log(SAheart$obesity+0.1)
+SAheart$tobacco=log(SAheart$tobacco+0.1)
+SAheart$alcohol=log(SAheart$alcohol+0.1)
+
+pairs(SAheart[,-c(5,10)],col=colores[SAheart$chd]) #Verde: 0, Rojo: 1
+
 
 
 #----- Ajuste del modelo con glm y selección de variables ---------------
