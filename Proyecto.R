@@ -1,9 +1,11 @@
 ################# PROYECTO FINAL DE ESTADÍSTICA BAYESIANA #################
 #-------------------------- 2021-2 ---------------------------------------
 #--- Librerías ----
+#install.packages("ROCR")
 library(rjags)
 library(ggplot2)
 library(tidyverse)
+library(ROCR); library(boot);
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
 options(digits = 1)
@@ -45,14 +47,144 @@ ggplot(SAheart,aes(x=famhist,fill=chd)) +
   scale_fill_manual(values=colores) +
   theme_bw()
 #---- Transformación de variables -----------
+# transformación logaritmo para evitar concentración
 #Se le suma 0.1 a las variables a transformar para evitar errores cuando se evalua en 0
 SAheart$obesity=log(SAheart$obesity+0.1)
 SAheart$tobacco=log(SAheart$tobacco+0.1)
 SAheart$alcohol=log(SAheart$alcohol+0.1)
+
+par(mfrow = c(1,3))
+for (i in c(7,2,8)) {
+  boxplot(SAheart[,i]~SAheart$chd, border=colores, col=0, main=names(SAheart)[i])}
+
 
 pairs(SAheart[,-c(5,10)],col=colores[SAheart$chd]) #Verde: 0, Rojo: 1
 
 
 
 #----- Ajuste del modelo con glm y selección de variables ---------------
+# modelo con todas las variables
+m1 = glm(chd ~ ., data=SAheart, family=binomial(link = "logit"))
+summary(m1)
 
+# seleccionamos tobacco,ldl,famhist, typea y age
+drop1(m1, test = "Chisq")
+
+m2 = glm(chd ~ tobacco + ldl + famhist + typea + age, data = SAheart,
+         family = binomial(link = "logit")) 
+summary(m2)
+drop1(m2, test = "Chisq")
+anova(m1, m2, test = "Chisq") 
+# Al realizar la prueba de Devianza, se verifica no es necesario incluir las otras variables
+
+# H0: betan1 = ... = betanm = 0 vs, H1: que alguna se distinta de cero. 
+# Como no rechazo H0, es mejor modelo chico
+
+# Agregamos interacciones
+m3 = glm(chd ~ tobacco + ldl + famhist + typea + age
+         + tobacco:typea + ldl:famhist, data = SAheart, 
+         family = binomial(link = "logit"))
+summary(m3) # ldl y famhistPresent no significativas
+drop1(m3, test = "Chisq")
+anova(m2, m3, test = "Chisq")  # mejor modelo 3
+
+m4 = glm(chd ~ tobacco + typea + age
+         + tobacco:typea + ldl:famhist, data = SAheart, 
+         family = binomial(link = "logit"))
+summary(m4)
+drop1(m4, test = "Chisq")
+anova(m3, m4, test = "Chisq")  # Se eliminan variables lhd y famhist
+
+# Seleccionamos el modelo
+
+#Evaluación del desempeño del modelo 
+# Se fija semilla y escoge el conjunto de entrenamiento.
+
+set.seed(1); train = replicate(200, sample(1:425, 393)) 
+
+#train es una matriz. Columna es cada conjunto de entrenamiento (200 en total)
+
+# Selección del modelo mediante los criterios: AIC, BIC, tasas de error de 
+# clasificación (globales y por grupo, aparentes, sobre cjto. de prueba y de 
+# entrenamiento), AUC y ANOVA.
+
+modelos = list(m1, m2, m3, m4)
+(errores_aparentes = sapply(modelos, tasas_error, train = NULL, corte = 0.5))  #TASAS APARENTES
+(auc = sapply(modelos, function(modelo){mean(apply(train, 2, AUC, m = modelo))})) #
+(ROC = lapply(modelos, function(modelo){matrix(apply(apply(train, 2, 
+                                                           esp_sens, m = modelo), 1, mean), ncol=3)})) #ESPECIFICIDAD, SENSIBILIDAD Y PUNTO DE CORTE VALIDADAS
+(errores_test = sapply(1:4, function(i) {apply(apply(train, 2, tasas_error,
+                                                     m = modelos[[i]], corte = 0.5), 1, mean)})) #TASAS ERROR CONJUNTO DE PRUEBA
+
+
+######################### CONCLUSIONES SOBRE AJUSTE DEL MODELO #############################
+
+c = cbind(sapply(modelos, function(x){x$deviance}), sapply(modelos, AIC), 
+          sapply(modelos, BIC), t(errores_aparentes), t(errores_test), auc)
+
+colnames(c) = c("Devianza", "AIC", "BIC", "ApGlob", "Ap0", "Ap1", "TestGlob", 
+                "Test0", "Test1", "AUC")
+row.names(c) = paste("Modelo", c(1,2,3,4)); c
+
+# El AIC, BIC, DEVIANZA son medidas de bondad de ajuste 
+# Utilizadas principalmente para clasificar, no predecir. 
+
+# Un modelo saturado es aquél que tiene tasas aparentes (sobre todo el conjunto de datos)
+# buenas, pero tasas validadas (sobre conjunto de entrenamiento) malas. 
+
+# Los modelos 3 y 4 tienen un desempeño parecido
+# Modelo 3 preice mejor
+
+# Elección: modelo 3
+round(cbind(Coeficiente = coef(m3), confint(m3)), 2)
+round(cbind(OR = exp(coef(m3)), exp(confint(m3))), 2)[-1,] # Odds ratios
+
+###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT:
+# Cálculo de errores por clase.
+tasas_error = function(modelo, train, corte) {
+  if (is.null(train)) {
+    pred = as.numeric(predict(modelo, type = "response") > corte)
+    y = SAheart$chd }
+  else {
+    pred = as.numeric(predict(modelo, newdata = SAheart[-train,],
+                              type = "response") > corte)
+    y = SAheart$chd[-train] }
+  return(100*c(mean(y != pred), mean(y[y == 0] != pred[y == 0]), 
+               mean(y[y == 1] != pred[y == 1]))) }
+# Error global, error grupo 0, error grupo 1.
+
+
+# Obtiene especificidades, sensibilidades y puntos de corte del modelo m sobre el 
+# conjunto de entrenamiento (train).
+esp_sens = function(m, train) {
+  pred = predict(m, SAheart[-train,], type = "response")
+  perf = performance(prediction(pred, SAheart$chd[-train]), "tpr", "fpr")
+  return(cbind(1-perf@x.values[[1]], perf@y.values[[1]], perf@alpha.values[[1]])) }
+
+
+# Área bajo la curva ROC del modelo m sobre el conjunto de entrenamiento (train).
+AUC = function(m, train) {
+  pred = predict(m, SAheart[-train,], type = "response")
+  return(performance(prediction(pred, SAheart$chd[-train]), "auc")@y.values[[1]]) }
+
+# Función de cálculo de errores de clasificación globales y por grupo:
+# Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
+# De lo contrario, regresa los errores sobre el conjunto de entrenamiento.
+
+error = function(train, test) { 
+  if (test) newdata = SAheart[-train,]
+  else newdata = SAheart[train,]
+  pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
+                                data = SAheart[train,]), newdata = newdata, 
+                            type = "response") > 0.5)
+  return(c(100*mean(newdata$chd != pred),
+           100*mean(newdata$chd[newdata$chd==0] != pred[newdata$chd==0]), 
+           100*mean(newdata$chd[newdata$chd==1] != pred[newdata$chd==1]))) }
+
+error_global = function(train, test) { 
+  if (test) newdata = SAheart[-train,]
+  else newdata = SAheart[train,]
+  pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
+                                data = SAheart[train,]), newdata = newdata, 
+                            type = "response") > 0.5)
+  return(100*mean(newdata$chd != pred)) }
