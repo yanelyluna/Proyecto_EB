@@ -8,7 +8,7 @@ library(tidyverse)
 library(ROCR); library(boot);
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
-options(digits = 1)
+options(digits = 3)
 
 #--- Datos ----
 SAheart <- read.table("http://www-stat.stanford.edu/~tibs/ElemStatLearn/datasets/SAheart.data",
