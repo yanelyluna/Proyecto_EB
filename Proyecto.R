@@ -100,30 +100,23 @@ anova(m3, m4, test = "Chisq")  # Se eliminan variables lhd y famhist
 #Evaluación del desempeño del modelo 
 # Se fija semilla y escoge el conjunto de entrenamiento.
 
-set.seed(1); train = replicate(200, sample(1:425, 393)) 
-
-#train es una matriz. Columna es cada conjunto de entrenamiento (200 en total)
+set.seed(1); train=sample(1:462,393,replace = FALSE) #85% de las observaciones
 
 # Selección del modelo mediante los criterios: AIC, BIC, tasas de error de 
 # clasificación (globales y por grupo, aparentes, sobre cjto. de prueba y de 
 # entrenamiento), AUC y ANOVA.
 
 modelos = list(m1, m2, m3, m4)
-(errores_aparentes = sapply(modelos, tasas_error, train = NULL, corte = 0.5))  #TASAS APARENTES
-(auc = sapply(modelos, function(modelo){mean(apply(train, 2, AUC, m = modelo))})) #
-(ROC = lapply(modelos, function(modelo){matrix(apply(apply(train, 2, 
-                                                           esp_sens, m = modelo), 1, mean), ncol=3)})) #ESPECIFICIDAD, SENSIBILIDAD Y PUNTO DE CORTE VALIDADAS
-(errores_test = sapply(1:4, function(i) {apply(apply(train, 2, tasas_error,
-                                                     m = modelos[[i]], corte = 0.5), 1, mean)})) #TASAS ERROR CONJUNTO DE PRUEBA
+(errores_aparentes = sapply(modelos, tasas_error, train = train,test=FALSE, corte = 0.5))  #TASAS APARENTES
+(errores_test = sapply(modelos, tasas_error, train = train,test=TRUE, corte = 0.5))                                                      
 
+c = cbind(sapply(modelos, function(x){x$deviance}), sapply(modelos, AIC), 
+          sapply(modelos, BIC), t(errores_aparentes), t(errores_test))
 
 ######################### CONCLUSIONES SOBRE AJUSTE DEL MODELO #############################
 
-c = cbind(sapply(modelos, function(x){x$deviance}), sapply(modelos, AIC), 
-          sapply(modelos, BIC), t(errores_aparentes), t(errores_test), auc)
-
 colnames(c) = c("Devianza", "AIC", "BIC", "ApGlob", "Ap0", "Ap1", "TestGlob", 
-                "Test0", "Test1", "AUC")
+                "Test0", "Test1")
 row.names(c) = paste("Modelo", c(1,2,3,4)); c
 
 # El AIC, BIC, DEVIANZA son medidas de bondad de ajuste 
@@ -133,58 +126,23 @@ row.names(c) = paste("Modelo", c(1,2,3,4)); c
 # buenas, pero tasas validadas (sobre conjunto de entrenamiento) malas. 
 
 # Los modelos 3 y 4 tienen un desempeño parecido
-# Modelo 3 preice mejor
+# Modelo 3 predice mejor en train
 
 # Elección: modelo 3
 round(cbind(Coeficiente = coef(m3), confint(m3)), 2)
 round(cbind(OR = exp(coef(m3)), exp(confint(m3))), 2)[-1,] # Odds ratios
 
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT:
-# Cálculo de errores por clase.
-tasas_error = function(modelo, train, corte) {
-  if (is.null(train)) {
-    pred = as.numeric(predict(modelo, type = "response") > corte)
-    y = SAheart$chd }
-  else {
-    pred = as.numeric(predict(modelo, newdata = SAheart[-train,],
-                              type = "response") > corte)
-    y = SAheart$chd[-train] }
-  return(100*c(mean(y != pred), mean(y[y == 0] != pred[y == 0]), 
-               mean(y[y == 1] != pred[y == 1]))) }
-# Error global, error grupo 0, error grupo 1.
-
-
-# Obtiene especificidades, sensibilidades y puntos de corte del modelo m sobre el 
-# conjunto de entrenamiento (train).
-esp_sens = function(m, train) {
-  pred = predict(m, SAheart[-train,], type = "response")
-  perf = performance(prediction(pred, SAheart$chd[-train]), "tpr", "fpr")
-  return(cbind(1-perf@x.values[[1]], perf@y.values[[1]], perf@alpha.values[[1]])) }
-
-
-# Área bajo la curva ROC del modelo m sobre el conjunto de entrenamiento (train).
-AUC = function(m, train) {
-  pred = predict(m, SAheart[-train,], type = "response")
-  return(performance(prediction(pred, SAheart$chd[-train]), "auc")@y.values[[1]]) }
-
 # Función de cálculo de errores de clasificación globales y por grupo:
 # Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
 # De lo contrario, regresa los errores sobre el conjunto de entrenamiento.
-
-error = function(train, test) { 
+# Error global, error grupo 0, error grupo 1.
+tasas_error = function(modelo,train, test=FALSE,corte) { 
   if (test) newdata = SAheart[-train,]
   else newdata = SAheart[train,]
   pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
                                 data = SAheart[train,]), newdata = newdata, 
-                            type = "response") > 0.5)
+                            type = "response") > corte)
   return(c(100*mean(newdata$chd != pred),
            100*mean(newdata$chd[newdata$chd==0] != pred[newdata$chd==0]), 
            100*mean(newdata$chd[newdata$chd==1] != pred[newdata$chd==1]))) }
-
-error_global = function(train, test) { 
-  if (test) newdata = SAheart[-train,]
-  else newdata = SAheart[train,]
-  pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
-                                data = SAheart[train,]), newdata = newdata, 
-                            type = "response") > 0.5)
-  return(100*mean(newdata$chd != pred)) }
