@@ -132,6 +132,48 @@ row.names(c) = paste("Modelo", c(1,2,3,4)); c
 round(cbind(Coeficiente = coef(m3), confint(m3)), 2)
 round(cbind(OR = exp(coef(m3)), exp(confint(m3))), 2)[-1,] # Odds ratios
 
+### MODELO BAYESIANO ###
+data <- list(
+  y=SAheart$chd,
+  x1=SAheart$tobacco,
+  x2=SAheart$ldl,
+  x3=SAheart$famhist,
+  x4=SAheart$typea,
+  x5=SAheart$age,
+  n=length(SAheart$chd)
+)
+
+param <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5" )
+inits <-  function() {list(
+  "alpha"=rnorm(1),
+  "Beta1"=rnorm(1),
+  "Beta2"=rnorm(1),
+  "Beta3"=rnorm(1),
+  "Beta4"=rnorm(1),
+  "Beta5"=rnorm(1)
+)
+  
+}
+
+modelo=" model {
+for(i in 1:n){
+y[i]~dbern(p[i])
+p[i] <- 1/(1.0001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i])))
+}
+
+alpha ~ dnorm(0.0,1.0E-2)
+Beta1 ~ dnorm(0.0,1.0E-2)
+Beta2 ~ dnorm(0.0,1.0E-2)
+Beta3 ~ dnorm(0.0,1.0E-2)
+Beta4 ~ dnorm(0.0,1.0E-2)
+Beta5 ~ dnorm(0.0,1.0E-2)
+}
+
+"
+fit <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+
+update(fit,1000)
+
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT:
 # Función de cálculo de errores de clasificación globales y por grupo:
 # Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
