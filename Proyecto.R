@@ -209,6 +209,85 @@ summary(sample)
 # Beta5  0.0385  0.0498  0.0558  0.0621  0.0740
 # alpha -8.0787 -7.0109 -6.4036 -5.8446 -4.6655
 
+# 
+data.2<- list(
+  y=as.numeric(SAheart$chd)-1,
+  x1=SAheart$tobacco,
+  x2=SAheart$ldl,
+  x3=as.numeric(SAheart$famhist=="Present"),
+  x4=SAheart$typea,
+  x5=SAheart$age,
+  n=length(SAheart$chd)
+)
+
+param.2 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5" )
+inits <-  function() {list(
+  "alpha"=rnorm(1),
+  "Beta1"=rnorm(1),
+  "Beta2"=rnorm(1),
+  "Beta3"=rnorm(1),
+  "Beta4"=rnorm(1),
+  "Beta5"=rnorm(1)
+)
+  
+}
+
+modelo.2=" model {
+for(i in 1:n){
+  y[i]~dbern(p[i])
+  p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i])))
+  }
+  alpha ~ dnorm(0.0,1.0E-2)
+  Beta1 ~ dnorm(0.0,1.0E-2)
+  Beta2 ~ dnorm(0.0,1.0E-2)
+  Beta3 ~ dnorm(0.0,1.0E-2)
+  Beta4 ~ dnorm(0.0,1.0E-2)
+  Beta5 ~ dnorm(0.0,1.0E-2)
+  }
+"
+fit.2 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+
+update(fit.2,1000)
+
+
+
+
+sample.2 <- coda.samples(fit.2,param,n.iter = 4000,thin = 1)
+
+dev.new()
+plot(sample.2)
+
+gelman.plot(sample.2)
+
+summary(sample.2)
+
+# Iterations = 2001:6000
+# Thinning interval = 1 
+# Number of chains = 3 
+# Sample size per chain = 4000 
+#
+# 1. Empirical mean and standard deviation for each variable,
+# plus standard error of the mean:
+#  
+#  Mean     SD Naive SE Time-series SE3
+# Beta1  0.2465 0.0765 6.98e-04       0.001581
+# Beta2  0.1507 0.0547 4.99e-04       0.001969
+# Beta3  0.8792 0.2255 2.06e-03       0.004267
+# Beta4  0.0374 0.0109 9.91e-05       0.000846
+# Beta5  0.0510 0.0101 9.20e-05       0.000627
+# alpha -6.2336 0.8307 7.58e-03       0.089385
+#
+# 2. Quantiles for each variable:
+#  
+#  2.5%     25%     50%     75%   97.5%
+# Beta1  0.0991  0.1950  0.2468  0.2986  0.3985
+# Beta2  0.0405  0.1142  0.1508  0.1880  0.2561
+# Beta3  0.4334  0.7288  0.8775  1.0295  1.3262
+# Beta4  0.0161  0.0299  0.0378  0.0448  0.0589
+# Beta5  0.0320  0.0439  0.0508  0.0578  0.0712
+# alpha -7.8740 -6.7850 -6.2609 -5.6461 -4.6526
+
+
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
 # Función de cálculo de errores de clasificación globales y por grupo:
 # Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
