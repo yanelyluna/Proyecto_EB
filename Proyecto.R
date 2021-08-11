@@ -350,6 +350,61 @@ errores_jags
 
 plot(ecdf(probas.2))
 
+#   Modelo 3 jags #
+data.3<- list(
+  y=as.numeric(SAheart$chd)-1,
+  x1=SAheart$tobacco,
+  x2=SAheart$ldl,
+  x3=as.numeric(SAheart$famhist=="Present"),
+  x4=SAheart$typea,
+  x5=SAheart$age,
+  n=length(SAheart$chd)
+)
+
+param.3 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5", "Beta6", "Beta7" )
+inits <-  function() {list(
+  "alpha"=rnorm(1),
+  "Beta1"=rnorm(1),
+  "Beta2"=rnorm(1),
+  "Beta3"=rnorm(1),
+  "Beta4"=rnorm(1),
+  "Beta5"=rnorm(1),
+  "Beta6"=rnorm(1),
+  "Beta7"=rnorm(1)
+)
+  
+}
+
+modelo.3=" model {
+for(i in 1:n){
+y[i]~dbern(p[i])
+p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i]+Beta6*x1[i]*x4[i]+Beta7*x2[i]*x3[i])))}
+alpha ~ dnorm(0.0,1.0E-2)
+Beta1 ~ dnorm(0.0,1.0E-2)
+Beta2 ~ dnorm(0.0,1.0E-2)
+Beta3 ~ dnorm(0.0,1.0E-2)
+Beta4 ~ dnorm(0.0,1.0E-2)
+Beta5 ~ dnorm(0.0,1.0E-2)
+Beta6 ~ dnorm(0.0,1.0E-2)
+Beta7 ~ dnorm(0.0,1.0E-2)
+}
+"
+fit.3 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+
+update(fit.2,1000)
+
+
+
+
+sample.3 <- coda.samples(fit.3,param,n.iter = 4000,thin = 1)
+
+dev.new()
+plot(sample.3)
+
+gelman.plot(sample.3)
+
+summary(sample.3)
+
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
 # Función de cálculo de errores de clasificación globales y por grupo:
 # Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
