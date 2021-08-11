@@ -256,7 +256,7 @@ data.2<- list(
 )
 
 param.2 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5" )
-inits <-  function() {list(
+inits.2 <-  function() {list(
   "alpha"=rnorm(1),
   "Beta1"=rnorm(1),
   "Beta2"=rnorm(1),
@@ -280,14 +280,14 @@ for(i in 1:n){
   Beta5 ~ dnorm(0.0,1.0E-2)
   }
 "
-fit.2 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+fit.2 <- jags.model(textConnection(modelo.2),data.2,inits.2,n.chains=3)
 
 update(fit.2,1000)
 
 
 
 
-sample.2 <- coda.samples(fit.2,param,n.iter = 4000,thin = 1)
+sample.2 <- coda.samples(fit.2,param.2,n.iter = 4000,thin = 1)
 
 dev.new()
 plot(sample.2)
