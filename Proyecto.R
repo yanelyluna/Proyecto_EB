@@ -135,9 +135,9 @@ round(cbind(OR = exp(coef(m3)), exp(confint(m3))), 2)[-1,] # Odds ratios
 
 ### MODELO BAYESIANO --------
 attach(SAheart)
-modMCMC <- MCMClogit(chd~tobacco+ldl, burnin=1000, mcmc=1000, thin=1) 
+#modMCMC <- MCMClogit(chd~tobacco+ldl, burnin=1000, mcmc=1000, thin=1) 
 
-##
+##------ Modelo 1 con jags --------------------
 data <- list(
   y=as.numeric(chd)-1,
   x1=tobacco,
@@ -208,8 +208,43 @@ summary(sample)
 # Beta4  0.0141  0.0306  0.0384  0.0461  0.0613
 # Beta5  0.0385  0.0498  0.0558  0.0621  0.0740
 # alpha -8.0787 -7.0109 -6.4036 -5.8446 -4.6655
+#------------ Tasas de error de clasificación del modelo 1 con jags ----------
+head(sample)
+x=cbind(rep(1.0,length(chd)),tobacco,ldl,typea, age)
+aux_cadenas =do.call(rbind,sample)
+coeficientes =colMeans(aux_cadenas)
 
-# 
+param_acomodados =c(coeficientes[5],coeficientes[1:4])
+
+param_acomodados
+
+y_hat <- drop(x%*%param_acomodados)
+
+probas = 1/(1+exp(-y_hat))
+head(probas)
+
+matriz_jags <- ifelse(probas>=0.5,1,0)
+head(matriz_jags)
+
+table(SAheart$chd,matriz_jags)
+(252+77)/462 #0.712
+1-(252+77)/462 #Error de clasificación 0.288
+
+errores_jags <- data.frame(modelo=c("Modelo 1","Modelo 2","Modelo 3"),
+                           error_global=rep(NA,3),
+                           error_0=rep(NA,3),
+                           error_1=rep(NA,3))
+
+
+errores_jags[1,2:4] <- c(100*mean(SAheart$chd != matriz_jags),
+  100*mean(SAheart$chd[SAheart$chd==0] != matriz_jags[SAheart$chd==0]), 
+  100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags[SAheart$chd==1]))
+errores_jags
+
+
+plot(ecdf(probas))
+
+#-------- Modelo 2 con jags -----------------
 data.2<- list(
   y=as.numeric(SAheart$chd)-1,
   x1=SAheart$tobacco,
@@ -287,6 +322,34 @@ summary(sample.2)
 # Beta5  0.0320  0.0439  0.0508  0.0578  0.0712
 # alpha -7.8740 -6.7850 -6.2609 -5.6461 -4.6526
 
+# ---------------- Tasas de error de clasificación del modelo 2 con jags ----------
+#------------ Tasas de error de clasificación del modelo 1 con jags ----------
+head(sample.2)
+x=cbind(rep(1.0,length(chd)),tobacco,ldl,as.numeric(SAheart$famhist=="Present"),typea, age)
+aux_cadenas.2 =do.call(rbind,sample.2)
+coeficientes.2 =colMeans(aux_cadenas.2)
+
+param_acomodados.2 =c(coeficientes.2[6],coeficientes.2[1:5])
+
+param_acomodados.2
+
+y_hat.2 <- drop(x%*%param_acomodados.2)
+
+probas.2 = 1/(1+exp(-y_hat.2))
+head(probas.2)
+
+matriz_jags.2 <- ifelse(probas.2>=0.5,1,0)
+head(matriz_jags.2)
+
+table(SAheart$chd,matriz_jags.2)
+
+errores_jags[2,2:4] <- c(100*mean(SAheart$chd != matriz_jags.2),
+                         100*mean(SAheart$chd[SAheart$chd==0] != matriz_jags.2[SAheart$chd==0]), 
+                         100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags.2[SAheart$chd==1]))
+errores_jags
+
+
+plot(ecdf(probas.2))
 
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
 # Función de cálculo de errores de clasificación globales y por grupo:
