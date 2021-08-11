@@ -323,7 +323,6 @@ summary(sample.2)
 # alpha -7.8740 -6.7850 -6.2609 -5.6461 -4.6526
 
 # ---------------- Tasas de error de clasificación del modelo 2 con jags ----------
-#------------ Tasas de error de clasificación del modelo 1 con jags ----------
 head(sample.2)
 x=cbind(rep(1.0,length(chd)),tobacco,ldl,as.numeric(SAheart$famhist=="Present"),typea, age)
 aux_cadenas.2 =do.call(rbind,sample.2)
