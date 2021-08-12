@@ -350,15 +350,17 @@ errores_jags
 
 plot(ecdf(probas.2))
 
-#   Modelo 3 jags #
+#-------- Modelo 3 con jags -----------------
 data.3<- list(
-  y=as.numeric(SAheart$chd)-1,
-  x1=SAheart$tobacco,
-  x2=SAheart$ldl,
-  x3=as.numeric(SAheart$famhist=="Present"),
-  x4=SAheart$typea,
-  x5=SAheart$age,
-  n=length(SAheart$chd)
+  y=as.numeric(chd)-1,
+  x1=tobacco,
+  x2=ldl,
+  x3=as.numeric(famhist=="Present"),
+  x4=typea,
+  x5=age,
+  x6=tobacco*typea,
+  x7=ldl*as.numeric(famhist=="Present"),
+  n=length(chd)
 )
 
 param.3 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5", "Beta6", "Beta7" )
@@ -378,7 +380,7 @@ inits <-  function() {list(
 modelo.3=" model {
 for(i in 1:n){
 y[i]~dbern(p[i])
-p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i]+Beta6*x1[i]*x4[i]+Beta7*x2[i]*x3[i])))}
+p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i]+Beta6*x6[i]+Beta7*x7[i])))}
 alpha ~ dnorm(0.0,1.0E-2)
 Beta1 ~ dnorm(0.0,1.0E-2)
 Beta2 ~ dnorm(0.0,1.0E-2)
@@ -389,14 +391,11 @@ Beta6 ~ dnorm(0.0,1.0E-2)
 Beta7 ~ dnorm(0.0,1.0E-2)
 }
 "
-fit.3 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+fit.3 <- jags.model(textConnection(modelo.3),data.3,inits,n.chains=3)
 
-update(fit.2,1000)
+update(fit.3,1000)
 
-
-
-
-sample.3 <- coda.samples(fit.3,param,n.iter = 4000,thin = 1)
+sample.3 <- coda.samples(fit.3,param.3,n.iter = 4000,thin = 1)
 
 dev.new()
 plot(sample.3)
@@ -404,6 +403,34 @@ plot(sample.3)
 gelman.plot(sample.3)
 
 summary(sample.3)
+
+
+
+# ---------------- Tasas de error de clasificación del modelo 3 con jags ----------
+head(sample.3)
+x=cbind(rep(1.0,length(chd)),tobacco,ldl,as.numeric(SAheart$famhist=="Present"),
+        typea, age, tobacco*typea,ldl*as.numeric(famhist=="Present"))
+aux_cadenas.3 =do.call(rbind,sample.3)
+coeficientes.3 =colMeans(aux_cadenas.3)
+
+param_acomodados.3 =c(coeficientes.3[8],coeficientes.3[1:7])
+
+param_acomodados.3
+
+y_hat.3 <- drop(x%*%param_acomodados.3)
+
+probas.3 = 1/(1+exp(-y_hat.3))
+head(probas.3)
+
+matriz_jags.3 <- ifelse(probas.3>=0.5,1,0)
+head(matriz_jags.3)
+
+table(SAheart$chd,matriz_jags.3)
+
+errores_jags[3,2:4] <- c(100*mean(SAheart$chd != matriz_jags.3),
+                         100*mean(SAheart$chd[SAheart$chd==0] != matriz_jags.3[SAheart$chd==0]), 
+                         100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags.3[SAheart$chd==1]))
+errores_jags
 
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
 # Función de cálculo de errores de clasificación globales y por grupo:
