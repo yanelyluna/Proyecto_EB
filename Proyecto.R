@@ -10,6 +10,20 @@ library(ROCR); library(boot);
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
 options(digits = 3)
+###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
+# Función de cálculo de errores de clasificación globales y por grupo:
+# Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
+# De lo contrario, regresa los errores sobre el conjunto de entrenamiento.
+# Error global, error grupo 0, error grupo 1.
+tasas_error = function(modelo,train, test=FALSE,corte) { 
+  if (test) newdata = SAheart[-train,]
+  else newdata = SAheart[train,]
+  pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
+                                data = SAheart[train,]), newdata = newdata, 
+                            type = "response") > corte)
+  return(c(100*mean(newdata$chd != pred),
+           100*mean(newdata$chd[newdata$chd==0] != pred[newdata$chd==0]), 
+           100*mean(newdata$chd[newdata$chd==1] != pred[newdata$chd==1]))) }
 
 #--- Datos ----
 SAheart <- read.table("http://www-stat.stanford.edu/~tibs/ElemStatLearn/datasets/SAheart.data",
@@ -193,21 +207,22 @@ summary(sample)
 # 1. Empirical mean and standard deviation for each variable,
 # plus standard error of the mean:
 #   
-#   Mean      SD Naive SE Time-series SE
-# Beta1  0.0771 0.02628 2.40e-04       0.000545
-# Beta2  0.1810 0.05630 5.14e-04       0.002291
-# Beta4  0.0383 0.01194 1.09e-04       0.000996
-# Beta5  0.0559 0.00911 8.32e-05       0.000526
-# alpha -6.4178 0.88727 8.10e-03       0.104759
+#   Mean     SD Naive SE Time-series SE
+# Beta1  0.2403 0.0741 6.76e-04       0.001307
+# Beta2  0.1721 0.0560 5.11e-04       0.002097
+# Beta3  0.0390 0.0113 1.04e-04       0.000959
+# Beta4  0.0554 0.0103 9.39e-05       0.000738
+# alpha -6.2167 0.8898 8.12e-03       0.105540
 # 
 # 2. Quantiles for each variable:
 #   
 #   2.5%     25%     50%     75%   97.5%
-# Beta1  0.0263  0.0592  0.0768  0.0949  0.1291
-# Beta2  0.0715  0.1430  0.1811  0.2187  0.2915
-# Beta4  0.0141  0.0306  0.0384  0.0461  0.0613
-# Beta5  0.0385  0.0498  0.0558  0.0621  0.0740
-# alpha -8.0787 -7.0109 -6.4036 -5.8446 -4.6655
+# Beta1  0.0960  0.1909  0.2406  0.2894  0.3853
+# Beta2  0.0637  0.1340  0.1720  0.2099  0.2833
+# Beta3  0.0169  0.0315  0.0390  0.0465  0.0614
+# Beta4  0.0356  0.0483  0.0555  0.0624  0.0756
+# alpha -8.0559 -6.7696 -6.1653 -5.6207 -4.5531
+
 #------------ Tasas de error de clasificación del modelo 1 con jags ----------
 head(sample)
 x=cbind(rep(1.0,length(chd)),tobacco,ldl,typea, age)
@@ -394,8 +409,6 @@ fit.3 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
 update(fit.2,1000)
 
 
-
-
 sample.3 <- coda.samples(fit.3,param,n.iter = 4000,thin = 1)
 
 dev.new()
@@ -405,17 +418,3 @@ gelman.plot(sample.3)
 
 summary(sample.3)
 
-###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
-# Función de cálculo de errores de clasificación globales y por grupo:
-# Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
-# De lo contrario, regresa los errores sobre el conjunto de entrenamiento.
-# Error global, error grupo 0, error grupo 1.
-tasas_error = function(modelo,train, test=FALSE,corte) { 
-  if (test) newdata = SAheart[-train,]
-  else newdata = SAheart[train,]
-  pred = as.numeric(predict(glm(modelo$formula, family = binomial(link = "logit"),
-                                data = SAheart[train,]), newdata = newdata, 
-                            type = "response") > corte)
-  return(c(100*mean(newdata$chd != pred),
-           100*mean(newdata$chd[newdata$chd==0] != pred[newdata$chd==0]), 
-           100*mean(newdata$chd[newdata$chd==1] != pred[newdata$chd==1]))) }
