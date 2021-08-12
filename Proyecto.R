@@ -10,6 +10,7 @@ library(ROCR); library(boot);
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
 options(digits = 3)
+
 ###  FUNCIONES UTILIZADAS A LO LARGO DEL SCRIPT: -----------
 # Función de cálculo de errores de clasificación globales y por grupo:
 # Si test == TRUE, regresa los errores promediados sobre el conjunto de prueba.
@@ -271,7 +272,7 @@ data.2<- list(
 )
 
 param.2 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5" )
-inits <-  function() {list(
+inits.2 <-  function() {list(
   "alpha"=rnorm(1),
   "Beta1"=rnorm(1),
   "Beta2"=rnorm(1),
@@ -295,14 +296,14 @@ for(i in 1:n){
   Beta5 ~ dnorm(0.0,1.0E-2)
   }
 "
-fit.2 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+fit.2 <- jags.model(textConnection(modelo.2),data.2,inits.2,n.chains=3)
 
 update(fit.2,1000)
 
 
 
 
-sample.2 <- coda.samples(fit.2,param,n.iter = 4000,thin = 1)
+sample.2 <- coda.samples(fit.2,param.2,n.iter = 4000,thin = 1)
 
 dev.new()
 plot(sample.2)
@@ -319,23 +320,23 @@ summary(sample.2)
 # 1. Empirical mean and standard deviation for each variable,
 # plus standard error of the mean:
 #  
-#  Mean     SD Naive SE Time-series SE3
-# Beta1  0.2465 0.0765 6.98e-04       0.001581
-# Beta2  0.1507 0.0547 4.99e-04       0.001969
-# Beta3  0.8792 0.2255 2.06e-03       0.004267
-# Beta4  0.0374 0.0109 9.91e-05       0.000846
-# Beta5  0.0510 0.0101 9.20e-05       0.000627
-# alpha -6.2336 0.8307 7.58e-03       0.089385
+#  Mean     SD Naive SE Time-series SE
+# Beta1  0.2446 0.0764 6.97e-04        0.00140
+# Beta2  0.1524 0.0556 5.08e-04        0.00211
+# Beta3  0.8867 0.2302 2.10e-03        0.00448
+# Beta4  0.0373 0.0136 1.24e-04        0.00134
+# Beta5  0.0514 0.0108 9.87e-05        0.00076
+# alpha -6.2644 1.0423 9.51e-03        0.14068
 #
 # 2. Quantiles for each variable:
 #  
 #  2.5%     25%     50%     75%   97.5%
-# Beta1  0.0991  0.1950  0.2468  0.2986  0.3985
-# Beta2  0.0405  0.1142  0.1508  0.1880  0.2561
-# Beta3  0.4334  0.7288  0.8775  1.0295  1.3262
-# Beta4  0.0161  0.0299  0.0378  0.0448  0.0589
-# Beta5  0.0320  0.0439  0.0508  0.0578  0.0712
-# alpha -7.8740 -6.7850 -6.2609 -5.6461 -4.6526
+# Beta1  0.0968  0.1935  0.2437  0.2949  0.3971
+# Beta2  0.0451  0.1153  0.1523  0.1888  0.2651
+# Beta3  0.4431  0.7296  0.8852  1.0418  1.3387
+# Beta4  0.0129  0.0278  0.0367  0.0465  0.0645
+# Beta5  0.0313  0.0440  0.0510  0.0587  0.0736
+# alpha -8.4425 -6.9306 -6.2071 -5.5279 -4.3735
 
 # ---------------- Tasas de error de clasificación del modelo 2 con jags ----------
 head(sample.2)
@@ -365,15 +366,17 @@ errores_jags
 
 plot(ecdf(probas.2))
 
-#   Modelo 3 jags #
+#-------- Modelo 3 con jags -----------------
 data.3<- list(
-  y=as.numeric(SAheart$chd)-1,
-  x1=SAheart$tobacco,
-  x2=SAheart$ldl,
-  x3=as.numeric(SAheart$famhist=="Present"),
-  x4=SAheart$typea,
-  x5=SAheart$age,
-  n=length(SAheart$chd)
+  y=as.numeric(chd)-1,
+  x1=tobacco,
+  x2=ldl,
+  x3=as.numeric(famhist=="Present"),
+  x4=typea,
+  x5=age,
+  x6=tobacco*typea,
+  x7=ldl*as.numeric(famhist=="Present"),
+  n=length(chd)
 )
 
 param.3 <- c("alpha","Beta1","Beta2","Beta3", "Beta4", "Beta5", "Beta6", "Beta7" )
@@ -393,7 +396,7 @@ inits <-  function() {list(
 modelo.3=" model {
 for(i in 1:n){
 y[i]~dbern(p[i])
-p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i]+Beta6*x1[i]*x4[i]+Beta7*x2[i]*x3[i])))}
+p[i] <- 1/(1.000001+exp(-(alpha+Beta1*x1[i]+Beta2*x2[i]+Beta3*x3[i]+Beta4*x4[i]+Beta5*x5[i]+Beta6*x6[i]+Beta7*x7[i])))}
 alpha ~ dnorm(0.0,1.0E-2)
 Beta1 ~ dnorm(0.0,1.0E-2)
 Beta2 ~ dnorm(0.0,1.0E-2)
@@ -404,12 +407,11 @@ Beta6 ~ dnorm(0.0,1.0E-2)
 Beta7 ~ dnorm(0.0,1.0E-2)
 }
 "
-fit.3 <- jags.model(textConnection(modelo),data,inits,n.chains=3)
+fit.3 <- jags.model(textConnection(modelo.3),data.3,inits,n.chains=3)
 
-update(fit.2,1000)
+update(fit.3,1000)
 
-
-sample.3 <- coda.samples(fit.3,param,n.iter = 4000,thin = 1)
+sample.3 <- coda.samples(fit.3,param.3,n.iter = 4000,thin = 1)
 
 dev.new()
 plot(sample.3)
@@ -417,4 +419,31 @@ plot(sample.3)
 gelman.plot(sample.3)
 
 summary(sample.3)
+
+
+# ---------------- Tasas de error de clasificación del modelo 3 con jags ----------
+head(sample.3)
+x=cbind(rep(1.0,length(chd)),tobacco,ldl,as.numeric(SAheart$famhist=="Present"),
+        typea, age, tobacco*typea,ldl*as.numeric(famhist=="Present"))
+aux_cadenas.3 =do.call(rbind,sample.3)
+coeficientes.3 =colMeans(aux_cadenas.3)
+
+param_acomodados.3 =c(coeficientes.3[8],coeficientes.3[1:7])
+
+param_acomodados.3
+
+y_hat.3 <- drop(x%*%param_acomodados.3)
+
+probas.3 = 1/(1+exp(-y_hat.3))
+head(probas.3)
+
+matriz_jags.3 <- ifelse(probas.3>=0.5,1,0)
+head(matriz_jags.3)
+
+table(SAheart$chd,matriz_jags.3)
+
+errores_jags[3,2:4] <- c(100*mean(SAheart$chd != matriz_jags.3),
+                         100*mean(SAheart$chd[SAheart$chd==0] != matriz_jags.3[SAheart$chd==0]), 
+                         100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags.3[SAheart$chd==1]))
+errores_jags
 
