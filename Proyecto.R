@@ -420,6 +420,36 @@ gelman.plot(sample.3)
 
 summary(sample.3)
 
+# Iterations = 2001:6000
+# Thinning interval = 1 
+# Number of chains = 3 
+# Sample size per chain = 4000 
+# 
+# 1. Empirical mean and standard deviation for each variable,
+# plus standard error of the mean:
+#   
+#   Mean      SD Naive SE Time-series SE
+# Beta1  1.32044 0.44978 4.11e-03       0.052896
+# Beta2 -0.00843 0.07481 6.83e-04       0.004315
+# Beta3 -1.04085 0.61914 5.65e-03       0.040606
+# Beta4  0.05233 0.01495 1.37e-04       0.001634
+# Beta5  0.05366 0.01122 1.02e-04       0.000784
+# Beta6 -0.01946 0.00804 7.34e-05       0.000888
+# Beta7  0.38901 0.11704 1.07e-03       0.008158
+# alpha -6.46515 1.16991 1.07e-02       0.175057
+# 
+# 2. Quantiles for each variable:
+#   
+#   2.5%     25%      50%     75%    97.5%
+# Beta1  0.4902  1.0166  1.30433  1.5984  2.22982
+# Beta2 -0.1574 -0.0557 -0.00771  0.0402  0.13787
+# Beta3 -2.2218 -1.4441 -1.04705 -0.6491  0.21515
+# Beta4  0.0232  0.0419  0.05242  0.0630  0.08084
+# Beta5  0.0319  0.0459  0.05351  0.0612  0.07678
+# Beta6 -0.0357 -0.0245 -0.01917 -0.0141 -0.00455
+# Beta7  0.1575  0.3138  0.38945  0.4653  0.61515
+# alpha -8.7248 -7.2998 -6.41006 -5.6478 -4.29011
+
 
 # ---------------- Tasas de error de clasificación del modelo 3 con jags ----------
 head(sample.3)
@@ -447,3 +477,14 @@ errores_jags[3,2:4] <- c(100*mean(SAheart$chd != matriz_jags.3),
                          100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags.3[SAheart$chd==1]))
 errores_jags
 
+# matriz_jags.3
+# 0   1
+# 0 262  40
+# 1  75  85
+
+#     modelo error_global error_0 error_1
+# 1 Modelo 1           NA      NA      NA
+# 2 Modelo 2           NA      NA      NA
+# 3 Modelo 3         24.9    13.2    46.9
+
+plot(ecdf(probas.3))
