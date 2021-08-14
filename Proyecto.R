@@ -80,12 +80,14 @@ pairs(SAheart[,-c(5,10)],col=colores[SAheart$chd]) #Verde: 0, Rojo: 1
 
 #----- Ajuste del modelo con glm y selección de variables ---------------
 # modelo con todas las variables
+set.seed(1)
 m1 = glm(chd ~ ., data=SAheart, family=binomial(link = "logit"))
 summary(m1)
 
 # seleccionamos tobacco,ldl,famhist, typea y age
 drop1(m1, test = "Chisq")
 
+set.seed(1)
 m2 = glm(chd ~ tobacco + ldl + famhist + typea + age, data = SAheart,
          family = binomial(link = "logit")) 
 summary(m2)
@@ -97,6 +99,7 @@ anova(m1, m2, test = "Chisq")
 # Como no rechazo H0, es mejor modelo chico
 
 # Agregamos interacciones
+set.seed(1)
 m3 = glm(chd ~ tobacco + ldl + famhist + typea + age
          + tobacco:typea + ldl:famhist, data = SAheart, 
          family = binomial(link = "logit"))
@@ -104,6 +107,7 @@ summary(m3) # ldl y famhistPresent no significativas
 drop1(m3, test = "Chisq")
 anova(m2, m3, test = "Chisq")  # mejor modelo 3
 
+set.seed(1)
 m4 = glm(chd ~ tobacco + typea + age
          + tobacco:typea + ldl:famhist, data = SAheart, 
          family = binomial(link = "logit"))
@@ -187,6 +191,8 @@ modelo=" model {
 }
 
 "
+
+set.seed(1)
 fit <- jags.model(textConnection(modelo),data,inits,n.chains=3)
 
 update(fit,1000)
@@ -296,6 +302,8 @@ for(i in 1:n){
   Beta5 ~ dnorm(0.0,1.0E-2)
   }
 "
+
+set.seed(1)
 fit.2 <- jags.model(textConnection(modelo.2),data.2,inits.2,n.chains=3)
 
 update(fit.2,1000)
@@ -407,6 +415,8 @@ Beta6 ~ dnorm(0.0,1.0E-2)
 Beta7 ~ dnorm(0.0,1.0E-2)
 }
 "
+
+set.seed(1)
 fit.3 <- jags.model(textConnection(modelo.3),data.3,inits,n.chains=3)
 
 update(fit.3,1000)
