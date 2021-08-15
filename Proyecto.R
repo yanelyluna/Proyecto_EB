@@ -308,7 +308,7 @@ set.seed(1)
 fit.2 <- jags.model(textConnection(modelo.2),data.2,inits.2,n.chains=3)
 
 update(fit.2,1000)
-
+#update(fit.2,4000) Para ver que el modelo 2 converge quitando las 4000 interacciones
 
 
 
