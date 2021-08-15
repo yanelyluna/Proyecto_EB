@@ -6,6 +6,7 @@ library(rjags)
 library(MCMCpack) ### MCMC
 library(ggplot2)
 library(tidyverse)
+library(car)
 library(ROCR); library(boot);
 # Colores
 colores <- c("#00afbb","#ff5044") #Verde: 0, Rojo: 1
@@ -115,6 +116,8 @@ summary(m4)
 drop1(m4, test = "Chisq")
 anova(m3, m4, test = "Chisq")  # Se eliminan variables lhd y famhist
 
+vif(m4)
+
 # Seleccionamos el modelo
 
 #Evaluación del desempeño del modelo 
@@ -145,12 +148,10 @@ row.names(c) = paste("Modelo", c(1,2,3,4)); c
 # Un modelo saturado es aquél que tiene tasas aparentes (sobre todo el conjunto de datos)
 # buenas, pero tasas validadas (sobre conjunto de entrenamiento) malas. 
 
-# Los modelos 3 y 4 tienen un desempeño parecido
-# Modelo 3 predice mejor en train
-
-# Elección: modelo 3
-round(cbind(Coeficiente = coef(m3), confint(m3)), 2)
-round(cbind(OR = exp(coef(m3)), exp(confint(m3))), 2)[-1,] # Odds ratios
+# modelo 4 tiene todas las variables significativas
+# Elección: modelo 4
+round(cbind(Coeficiente = coef(m4), confint(m4)), 2)
+round(cbind(OR = exp(coef(m4)), exp(confint(m4))), 2)[-1,] # Odds ratios
 
 ### MODELO BAYESIANO --------
 attach(SAheart)
@@ -486,15 +487,5 @@ errores_jags[3,2:4] <- c(100*mean(SAheart$chd != matriz_jags.3),
                          100*mean(SAheart$chd[SAheart$chd==0] != matriz_jags.3[SAheart$chd==0]), 
                          100*mean(SAheart$chd[SAheart$chd==1] != matriz_jags.3[SAheart$chd==1]))
 errores_jags
-
-# matriz_jags.3
-# 0   1
-# 0 262  40
-# 1  75  85
-
-#     modelo error_global error_0 error_1
-# 1 Modelo 1           NA      NA      NA
-# 2 Modelo 2           NA      NA      NA
-# 3 Modelo 3         24.9    13.2    46.9
 
 plot(ecdf(probas.3))
