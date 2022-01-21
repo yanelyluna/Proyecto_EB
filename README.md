@@ -1,6 +1,7 @@
 # Proyecto_EB
 
 Proyecto final del curso optativo de Estadistica Bayesiana Semestre 2021-2 Facultad de Ciencias, UNAM.
+
 Autores: 
 + Joaquín Hernández Leopoldo
 + Luna Gutiérrez Yanely
